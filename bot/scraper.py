@@ -1,0 +1,246 @@
+from typing import List, Dict
+import re
+
+from bs4 import BeautifulSoup as BS
+import pandas as pd
+import aiohttp
+import asyncio
+import chompjs
+
+from entities import Product, ProductOption
+
+
+HEADERS = {
+    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0',
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+}
+
+STATUS_OK = 200
+
+SELECTORS = {
+    'title': 'h1',
+    'description': 'div[itemprop="description"]',
+    'image': '#image-main',
+    'rating': '.rating',
+    'reviews': '#goto-reviews',
+    'options_block': '#product-options-wrapper',
+    'availability': 'div.availability > span',
+    'availability_item': '.stock-display',
+    'availability_item_name': '.stock-warehouse',
+    'additional_info': '#product-attribute-specs-table tbody > tr',
+    'script': 'script',
+    'span': 'span'
+}
+
+REGEXPS = {
+    'script_1': re.compile('dataLayer.push'),
+    'script_2': re.compile('document.observe'),
+    'script_3': re.compile('var spConfig=new Product.Config'),
+    'prices': r'(?<="options":).+(?=,"selected_option")',
+    'titles': r'(?<="options":).+(?=}},"template")',
+    'availabilities': r'(?<="subProductsAvailability":).+(?=}\);)',
+    'current_product': r"(?<='currentProduct':).+(?=}\))",
+    'availability_value': re.compile('color')
+}
+
+PARSER = 'lxml'
+
+
+class Scraper:
+    def __init__(self, url: str):
+        self.url = url
+
+    async def scrape_product(self) -> Product:
+        """Scrape whole product data from page and return Product object."""
+        async with aiohttp.ClientSession(headers=HEADERS) as session:
+            html = await self.get_html(session)
+
+        soup = BS(html, PARSER)
+
+        main_data = self.get_descriptive_data(soup)
+        additional_info = self.get_data_from_additional_info(soup)
+        product_options = self.get_product_options(soup)
+        
+        product = Product(
+            id=None,
+            brand=additional_info['brands'],
+            description=main_data['description'],
+            img=main_data['image'],
+            title=main_data['title'],
+            product_type=additional_info['product_type'],
+            rating=main_data['rating'],
+            reviews=main_data['reviews'],
+            url=self.url,
+            product_options=product_options
+        )
+        print(product)
+        return product
+
+    async def get_html(self, session: aiohttp.ClientSession) -> str:
+        """Helper func for sending request and getting page's html."""
+        async with session.get(self.url) as response:
+            if response.status == STATUS_OK:
+                return await response.text()
+
+    def get_descriptive_data(self, soup: BS) -> Dict[str, str]:
+        """Scrape descriptive data on page."""
+        title = soup.select_one(SELECTORS['title'])
+        description = soup.select_one(SELECTORS['description'])
+        image = soup.select_one(SELECTORS['image'])
+        rating = soup.select_one(SELECTORS['rating']).get('style')
+        reviews = soup.select_one(SELECTORS['reviews']).get_text()
+
+        return {
+            'title': title.get_text(strip=True),
+            'description': description.get_text(strip=True),
+            'image': image.get('src'),
+            'rating': 5 * (int(re.search(r'\d+', rating).group()) / 100),
+            'reviews': int(re.search(r'\d+', reviews).group())
+        }
+
+    def get_product_options(self, soup: BS) -> List[ProductOption]:
+        """Scrape product options on page."""
+        option_block = soup.select_one(SELECTORS['options_block'])
+        if not option_block:
+            product_option = self._get_one_product_option(soup)
+            return [product_option]
+        
+        product_options = self._get_many_product_options(soup)
+        return product_options
+
+    def _get_one_product_option(self, soup: BS) -> ProductOption:
+        """Scrape product page with only one option."""
+        script_1 = soup.find_all(
+            SELECTORS['script'], string=REGEXPS['script_1']
+        )[1]
+        price_and_title_text = script_1.get_text()
+
+        current_product = chompjs.parse_js_object(re.search(
+            REGEXPS['current_product'], price_and_title_text
+        ).group())
+
+        price = current_product['price']
+        title = current_product['variant']
+        availability_html = str(
+            soup.select_one(SELECTORS['availability'])
+        )
+
+        return ProductOption(
+            id=None,
+            availability=self.parse_availability(availability_html),
+            title=title,
+            price=int(price)
+        )
+
+    def _get_many_product_options(self, soup: BS) -> List[ProductOption]:
+        """Scrape product page with many product options."""
+        script_2 = soup.find_all(
+            SELECTORS['script'], string=REGEXPS['script_2']
+        )[-1]
+        prices_text = script_2.get_text()
+
+        script_3 = soup.find(SELECTORS['script'], string=REGEXPS['script_3'])
+        titles_and_availability_text = script_3.get_text()
+
+        prices = self.get_data_from_script_text(
+            prices_text, REGEXPS['prices']
+        )
+        titles = self.get_data_from_script_text(
+            titles_and_availability_text, REGEXPS['titles']
+        )
+        availabilities = self.get_data_from_script_text(
+            titles_and_availability_text, REGEXPS['availabilities']
+        )
+
+        joined_data = self.join_data(prices, titles, availabilities)
+
+        product_options = []
+        for availability, title, price in joined_data:
+            product_options.append(ProductOption(
+                id=None,
+                availability=self.parse_availability(availability),
+                title=title,
+                price=int(price)
+            ))
+        return product_options
+
+    @staticmethod    
+    def get_data_from_script_text(text: str, regexp: str) -> List[Dict]:
+        """Helper func for simplifying data extraction from given string."""
+        string_data = re.search(regexp, text)
+        if not string_data:
+            return None
+        return chompjs.parse_js_object(string_data.group())
+
+    @staticmethod
+    def join_data(prices: List[Dict], options: List[Dict], availabilities: List[Dict]) -> List[List]:
+        """"Join 3 dicts together and convert result to List[List]."""
+        df1 = pd.DataFrame(prices)
+        df2 = pd.DataFrame(options)
+        df3 = pd.DataFrame(availabilities)
+
+        merged_data = pd.merge(
+            pd.merge(df1, df2, on='id'),
+            df3,
+            left_on='product_id', right_on='id'
+        )
+        result = merged_data[['availability', 'label', 'once_off_price']]
+        return result.values.tolist()
+
+    @staticmethod
+    def parse_availability(availability_html: str) -> str:
+        """Scrape availability_html and pretify scraped data."""
+        soup = BS(availability_html, PARSER)
+
+        rows_number = len(soup.select(SELECTORS['availability_item']))
+        titles = tuple(map(
+            lambda item: item.get_text(),
+            soup.select(SELECTORS['availability_item_name'])
+        ))
+
+        if rows_number == 1:
+            value = soup.find(
+                SELECTORS['span'], style=REGEXPS['availability_value']
+            ).span.get_text()
+
+            return f'{", ".join(titles)}: {value}'
+
+        elif rows_number > 1:
+            values = tuple(map(
+                lambda item: item.get_text(),
+                soup.find_all(
+                    SELECTORS['span'], style=REGEXPS['availability_value']
+                )
+            ))
+
+            return '\n'.join(
+                [f'{titles[i]}: {values[i]}' for i in range(len(titles))]
+            )
+        
+        return availability_html
+
+    @staticmethod
+    def get_data_from_additional_info(soup: BS) -> Dict:
+        """Scrape data from additional info table on product page."""
+        def to_snake_case(value: str) -> str:
+            return '_'.join(value.lower().split())
+
+        text_to_find = ('Brands', 'Product Type')
+        keys = tuple(map(to_snake_case, text_to_find))
+
+        trs = tuple(filter(
+            lambda tag: tag.th.get_text(strip=True) in text_to_find,
+            soup.select(SELECTORS['additional_info'])
+        ))
+
+        return {
+            keys[i]: trs[i].td.get_text(strip=True) for i in range(len(trs))
+        }
+
+
+if __name__ == '__main__':
+    url1 = 'https://www.petheaven.co.za/dogs/dog-food/acana/acana-pacific-pilchard-dog-food.html'
+    url2 = 'https://www.petheaven.co.za/other-pets/birds/bird-treats/marlton-s-fruit-nut-parrot-food-mix.html'
+    url3 = 'https://www.petheaven.co.za/other-pets/small-pets/small-pet-habitats/wagworld-nap-sack-fleece-pet-bed-navy.html'
+    scraper = Scraper(url1)
+    asyncio.run(scraper.scrape_product())
