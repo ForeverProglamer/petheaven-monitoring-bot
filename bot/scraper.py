@@ -7,7 +7,7 @@ import aiohttp
 import asyncio
 import chompjs
 
-from entities import Product, ProductOption
+from bot.entities import Product, ProductOption
 
 
 HEADERS = {
@@ -46,6 +46,7 @@ REGEXPS = {
 PARSER = 'lxml'
 
 
+# todo fix scraping products with sale icon
 class Scraper:
     def __init__(self, url: str):
         self.url = url
@@ -88,14 +89,19 @@ class Scraper:
         description = soup.select_one(SELECTORS['description'])
         image = soup.select_one(SELECTORS['image'])
         rating = soup.select_one(SELECTORS['rating']).get('style')
-        reviews = soup.select_one(SELECTORS['reviews']).get_text()
+
+        reviews_elem = soup.select_one(SELECTORS['reviews'])
+        reviews = 0
+        if reviews_elem:
+            reviews = reviews_elem.get_text()
+            reviews = int(re.search(r'\d+', reviews).group())
 
         return {
             'title': title.get_text(strip=True),
             'description': description.get_text(strip=True),
             'image': image.get('src'),
             'rating': 5 * (int(re.search(r'\d+', rating).group()) / 100),
-            'reviews': int(re.search(r'\d+', reviews).group())
+            'reviews': reviews
         }
 
     def get_product_options(self, soup: BS) -> List[ProductOption]:
@@ -213,7 +219,7 @@ class Scraper:
                 )
             ))
 
-            return '\n'.join(
+            return '; '.join(
                 [f'{titles[i]}: {values[i]}' for i in range(len(titles))]
             )
         
@@ -242,5 +248,9 @@ if __name__ == '__main__':
     url1 = 'https://www.petheaven.co.za/dogs/dog-food/acana/acana-pacific-pilchard-dog-food.html'
     url2 = 'https://www.petheaven.co.za/other-pets/birds/bird-treats/marlton-s-fruit-nut-parrot-food-mix.html'
     url3 = 'https://www.petheaven.co.za/other-pets/small-pets/small-pet-habitats/wagworld-nap-sack-fleece-pet-bed-navy.html'
-    scraper = Scraper(url1)
+    url4 = 'https://www.petheaven.co.za/beeztees-sumo-halterino-dumbell-dog-toy.html'
+
+    # todo fix scraping products with much more options (greater than 6?) and different scripts
+    url5 = 'https://www.petheaven.co.za/dogs/dog-clothing/jackets/dog-s-life-summer-raincoat-spots-black.html'
+    scraper = Scraper(url4)
     asyncio.run(scraper.scrape_product())
