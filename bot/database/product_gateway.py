@@ -1,10 +1,11 @@
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 import logging
 
 from mysql.connector import connect, Error, errorcode
 
 from bot.exceptions import DataAlreadyExistsInDBError, DataNotFoundError
 from bot.entities import Product, ProductOption
+from bot.utils.common import group_product_options_by_ids
 from .config import db_config
 
 
@@ -42,16 +43,29 @@ FIND_PRODUCT_OPTIONS_BY_ID_QUERY = """
     WHERE product_id = %s
 """
 
-FIND_FAVOURITE_PRODUCTS = """
+FIND_PRODUCT_OPTIONS_BY_IDS_QUERY = """
+    SELECT id, availability, title, price, product_id
+    FROM product_options
+    WHERE product_id  IN ({})
+    ORDER BY product_id
+"""
+
+FIND_FAVOURITE_PRODUCTS_QUERY = """
     SELECT p.* FROM monitoring_list m
     JOIN products p ON m.product_id = p.id
     WHERE m.user_id = %s
 """
 
-REMOVE_PRODUCT_BY_ID = """
+REMOVE_PRODUCT_BY_ID_QUERY = """
     DELETE FROM products
     WHERE id = %s
 """
+
+REMOVE_PRODUCTS_BY_IDS_QUERY = """
+    DELETE FROM products
+    WHERE id IN ({})
+"""
+
 
 def add(user_id: int, product: Product) -> bool:
     """
@@ -146,12 +160,36 @@ def find_options_by_id(product_id: int) -> Union[List[ProductOption], List]:
         return []
 
 
+def find_options_by_ids(product_ids: List[int]) -> Dict[int, List[ProductOption]]:
+    """Find product options within product_ids list."""
+    query = FIND_PRODUCT_OPTIONS_BY_IDS_QUERY.format(
+        ', '.join(['%s' for _ in range(len(product_ids))])
+    )
+    try:
+        with connect(**db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    query, product_ids
+                )
+                data = cursor.fetchall()
+
+                if not data:
+                    raise DataNotFoundError(
+                        f'No product options found for products with ids={product_ids}'
+                    )
+
+        return group_product_options_by_ids(product_ids, data)
+    except Error as e:
+        logging.exception(f'Failed to find product options by ids={product_ids}: {e}')
+        return []
+
+
 def find_all_from_monitoring_list(user_id: int) -> Tuple[Product]:
     """Find products from user's monitoring list."""
     try:
         with connect(**db_config) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(FIND_FAVOURITE_PRODUCTS, (user_id,))
+                cursor.execute(FIND_FAVOURITE_PRODUCTS_QUERY, (user_id,))
                 data = cursor.fetchall()
 
         if not data:
@@ -169,9 +207,25 @@ def remove_by_id(product_id: int) -> bool:
     try:
         with connect(**db_config) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(REMOVE_PRODUCT_BY_ID, (product_id,))
+                cursor.execute(REMOVE_PRODUCT_BY_ID_QUERY, (product_id,))
                 connection.commit()
         return True
     except Error as e:
         logging.exception(f'Failed to remove product by id={product_id}: {e}')
+        return False
+
+
+def remove_by_ids(product_ids: List[int]) -> bool:
+    """Remove product with give id."""
+    query = REMOVE_PRODUCTS_BY_IDS_QUERY.format(
+        ', '.join(['%s' for _ in range(len(product_ids))])
+    )
+    try:
+        with connect(**db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, product_ids)
+                connection.commit()
+        return True
+    except Error as e:
+        logging.exception(f'Failed to remove products by ids {product_ids}: {e}')
         return False

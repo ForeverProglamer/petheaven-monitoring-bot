@@ -7,9 +7,10 @@ from aiogram.utils.callback_data import CallbackData
 from bot.entities import Product
 
 
-btn_cb = CallbackData('item', 'id', 'action_type')
+select_cb = CallbackData('product', 'product_id')
+navigation_cb = CallbackData('nav', 'page_num')
+confirm_cb = CallbackData('conf')
 
-action_types = ('select', 'forward', 'back')
 elements_on_page = 5
 
 
@@ -56,27 +57,29 @@ def create_pages_from_products(products: List[Dict]) -> List[List[Dict]]:
     return pages
 
 
-def get_keyboard_for_page(pages: List[List[Dict]], page_num: int = 1) -> InlineKeyboardMarkup:
+def get_keyboard_for_page(pages: List[List[Dict]], page_num: int = 1, checked_ids: List[int] = []) -> InlineKeyboardMarkup:
     products = pages[page_num-1]
     buttons = [
         InlineKeyboardButton(
-            p['title'],
-            callback_data=btn_cb.new(id=p['id'], action_type=action_types[0])
+            '☑️' + p['title'] if p['id'] in checked_ids else p['title'],
+            callback_data=select_cb.new(product_id=p['id'])
         )
         for p in products
     ]
 
     if page_num > 1:
         buttons.append(InlineKeyboardButton(
-            '⬅️',
-            callback_data=btn_cb.new(id=page_num-1, action_type=action_types[2])
+            '⬅️ Back',
+            callback_data=navigation_cb.new(page_num=page_num-1)
         ))
 
     if 1 <= page_num < len(pages):
         buttons.append(InlineKeyboardButton(
-            '➡️',
-            callback_data=btn_cb.new(id=page_num+1, action_type=action_types[1])
+            '➡️ Next',
+            callback_data=navigation_cb.new(page_num=page_num+1)
         ))
+
+    buttons.append(InlineKeyboardButton('🆗 Confirm', callback_data=confirm_cb.new()))
 
     keyboard = InlineKeyboardMarkup(row_width=1)
     for btn in buttons:

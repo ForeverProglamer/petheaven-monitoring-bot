@@ -39,7 +39,7 @@ REGEXPS = {
     'prices': r'(?<="options":).+(?=,"selected_option")',
     'titles': r'(?<="options":).+(?=}},"template")',
     'availabilities': r'(?<="subProductsAvailability":).+(?=}\);)',
-    'current_product': r"(?<='currentProduct':).+(?=}\))",
+    'current_product': r"(?<='currentProduct':)(.|\s)+(?=}\))",
     'availability_value': re.compile('color')
 }
 
@@ -120,10 +120,11 @@ class Scraper:
             SELECTORS['script'], string=REGEXPS['script_1']
         )[1]
         price_and_title_text = script_1.get_text()
-
+        
         current_product = chompjs.parse_js_object(re.search(
             REGEXPS['current_product'], price_and_title_text
         ).group())
+        
 
         price = current_product['price']
         title = current_product['variant']
@@ -135,7 +136,7 @@ class Scraper:
             id=None,
             availability=self.parse_availability(availability_html),
             title=title,
-            price=int(price)
+            price=int(price),
         )
 
     def _get_many_product_options(self, soup: BS) -> List[ProductOption]:
@@ -166,7 +167,7 @@ class Scraper:
                 id=None,
                 availability=self.parse_availability(availability),
                 title=title,
-                price=int(price)
+                price=int(price),
             ))
         return product_options
 
@@ -252,5 +253,6 @@ if __name__ == '__main__':
 
     # todo fix scraping products with much more options (greater than 6?) and different scripts
     url5 = 'https://www.petheaven.co.za/dogs/dog-clothing/jackets/dog-s-life-summer-raincoat-spots-black.html'
-    scraper = Scraper(url4)
+    url6 = 'https://www.petheaven.co.za/cats/cat-treats/orijen/orijen-6-fish-freeze-dried-cat-treats.html'
+    scraper = Scraper(url5)
     asyncio.run(scraper.scrape_product())

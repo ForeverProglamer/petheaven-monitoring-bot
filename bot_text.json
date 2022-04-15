@@ -13,7 +13,7 @@
         "add_error": "😢 Something went wrong...Cannot add this product",
         "remove_start": "✔️ Choose product which you want to remove",
         "remove_success": "✅ Removed successfully",
-        "remove_error": "❌ Can't remove product"
+        "remove_error": "❌ Can't remove product(s)"
     },
     "buttons": {
         "info": "📖 Info",

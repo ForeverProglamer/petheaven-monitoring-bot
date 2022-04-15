@@ -23,8 +23,9 @@ from bot.utils.render import (
     prettify_product_info,
     prettify_product_list,
     get_keyboard_for_page,
-    action_types,
-    btn_cb
+    select_cb,
+    navigation_cb,
+    confirm_cb
 )
 
 
@@ -89,35 +90,56 @@ async def monitor_menu_handler(message: types.Message, state: FSMContext):
     await handler(message, state)
 
 
-@dp.callback_query_handler(btn_cb.filter(action_type=[action_types[0]]), state=MonitorProducts.on_getting_product_info)
-async def info_callback_action_select(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
-    product_id = int(callback_data['id'])
+@dp.callback_query_handler(select_cb.filter(), state='*')
+async def callback_select(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
+    product_id = int(callback_data['product_id'])
+    await product_service.add_to_checked_ids(product_id, state)
+
+    async with state.proxy() as data:
+        current_page = data['current_page']
+        checked_ids = data['checked_products']
+
+    pages = await get_pages(state)
+    await call.message.edit_reply_markup(
+        get_keyboard_for_page(pages, current_page, checked_ids)
+    )
+    await call.answer()
+        
+
+@dp.callback_query_handler(confirm_cb.filter(), state=MonitorProducts.on_getting_product_info)
+async def info_callback_confirm(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
     try:
-        product = await product_service.get_info(product_id, state)
+        products = await product_service.get_info(state)
     except DataNotFoundError as e:
         logging.exception(e)
         await call.message.answer(MESSAGES['info_error'])
     else:
         await call.message.edit_reply_markup()
-        await call.message.answer(
-            prettify_product_info(product),
-            parse_mode=types.ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
-        await call.message.answer_photo(product.img, product.title)
+        for product in products:
+            await call.message.answer(
+                prettify_product_info(product),
+                parse_mode=types.ParseMode.HTML,
+                disable_web_page_preview=True,
+            )
+            await call.message.answer_photo(product.img, product.title)
     finally:
-        await call.answer()
+        await state.update_data(checked_products=[])
         await state.reset_state(with_data=False)
+        await call.answer()
 
 
-@dp.callback_query_handler(btn_cb.filter(action_type=action_types[1:]), state='*')
-async def callback_action_navigation(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
+@dp.callback_query_handler(navigation_cb.filter(), state='*')
+async def callback_navigation(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
     # Handles both forward and back buttons
-    page_num = int(callback_data['id'])
+    page_num = int(callback_data['page_num'])
     pages = await get_pages(state)
 
+    async with state.proxy() as data:
+        data['current_page'] = page_num
+        checked_ids = data['checked_products']
+
     await call.message.edit_reply_markup(
-        get_keyboard_for_page(pages, page_num)
+        get_keyboard_for_page(pages, page_num, checked_ids)
     )
     await call.answer()
 
@@ -143,19 +165,19 @@ async def add_product(message: types.Message, state: FSMContext):
     await state.reset_state(with_data=False)
 
 
-@dp.callback_query_handler(btn_cb.filter(action_type=[action_types[0]]), state=MonitorProducts.on_removing_product)
-async def remove_callback_action_select(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
-    product_id = int(callback_data['id'])
+@dp.callback_query_handler(confirm_cb.filter(), state=MonitorProducts.on_removing_product)
+async def remove_callback_confirm(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
     try:
-        product_service.remove_by_id(product_id)
+        await product_service.remove_by_ids(state)
     except ServiceOperationFailedError:
         await call.message.answer(MESSAGES['remove_error'])
     else:
         await call.message.edit_reply_markup()
         await call.message.answer(MESSAGES['remove_success'])
     finally:
-        await call.answer()
+        await state.update_data(checked_products=[])
         await state.reset_state(with_data=False)
+        await call.answer()
 
 
 async def shutdown(dp: Dispatcher):
