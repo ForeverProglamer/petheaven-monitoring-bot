@@ -27,7 +27,7 @@ CREATE TABLE product_options (
     id INT AUTO_INCREMENT PRIMARY KEY,
     availability VARCHAR(100) NOT NULL,
     title VARCHAR(30) NOT NULL,
-    price INT NOT NULL,
+    price DECIMAL(10,4) NOT NULL,
     product_id INT NOT NULL,
     product_changes_id INT NOT NULL,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,

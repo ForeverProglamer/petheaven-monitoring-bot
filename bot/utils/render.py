@@ -26,7 +26,7 @@ def prettify_product_info(product: Product) -> str:
     for opt in product.product_options:
         options += (
             f'<b>Option:</b> {opt.title}\n'
-            f'<b>Price:</b> R{opt.price}\n'
+            f'<b>Price:</b> R{opt.price:.2f}\n'
             f'<b>Availability:</b> {opt.availability}\n'
             '\n'
         )

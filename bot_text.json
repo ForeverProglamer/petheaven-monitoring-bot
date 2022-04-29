@@ -5,6 +5,7 @@
         "monitor_no_products": "🤷‍♂️ You have no products in your monitoring list, But you can add some.",
         "monitor_list": "📋 <b>Your monitoring list:</b>\n{}",
         "info_start": "✔️ Choose product which you want to check",
+        "info_photo_error": "😢 Can't send photo of {}",
         "info_error": "😵‍💫 Can't find that product.",
         "add_start": "📲 Send me url of product you want to add",
         "add_wait": "🕵🏻‍♂️ Please wait. I'm looking for your product",

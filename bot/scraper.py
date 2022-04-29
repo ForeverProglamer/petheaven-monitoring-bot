@@ -1,4 +1,5 @@
 from typing import List, Dict
+from decimal import Decimal
 import re
 
 from bs4 import BeautifulSoup as BS
@@ -35,7 +36,7 @@ SELECTORS = {
 REGEXPS = {
     'script_1': re.compile('dataLayer.push'),
     'script_2': re.compile('document.observe'),
-    'script_3': re.compile('var spConfig=new Product.Config'),
+    'script_3': re.compile('var spConfig = new Product.Config'),
     'prices': r'(?<="options":).+(?=,"selected_option")',
     'titles': r'(?<="options":).+(?=}},"template")',
     'availabilities': r'(?<="subProductsAvailability":).+(?=}\);)',
@@ -46,7 +47,6 @@ REGEXPS = {
 PARSER = 'lxml'
 
 
-# todo fix scraping products with sale icon
 class Scraper:
     def __init__(self, url: str):
         self.url = url
@@ -136,7 +136,7 @@ class Scraper:
             id=None,
             availability=self.parse_availability(availability_html),
             title=title,
-            price=int(price),
+            price=Decimal(price),
         )
 
     def _get_many_product_options(self, soup: BS) -> List[ProductOption]:
@@ -159,7 +159,12 @@ class Scraper:
             titles_and_availability_text, REGEXPS['availabilities']
         )
 
-        joined_data = self.join_data(prices, titles, availabilities)
+        price_key = 'once_off_price'
+        if self.has_sale_sticker(soup):
+            price_key  = 'special_price' 
+
+        keys = ['availability', 'label', price_key]
+        joined_data = self.join_data(prices, titles, availabilities, keys)
 
         product_options = []
         for availability, title, price in joined_data:
@@ -167,7 +172,7 @@ class Scraper:
                 id=None,
                 availability=self.parse_availability(availability),
                 title=title,
-                price=int(price),
+                price=Decimal(price),
             ))
         return product_options
 
@@ -180,7 +185,11 @@ class Scraper:
         return chompjs.parse_js_object(string_data.group())
 
     @staticmethod
-    def join_data(prices: List[Dict], options: List[Dict], availabilities: List[Dict]) -> List[List]:
+    def has_sale_sticker(soup: BS) -> bool:
+        return True if soup.select_one('span.sticker.sale') else False
+
+    @staticmethod
+    def join_data(prices: List[Dict], options: List[Dict], availabilities: List[Dict], keys: List[str]) -> List[List]:
         """"Join 3 dicts together and convert result to List[List]."""
         df1 = pd.DataFrame(prices)
         df2 = pd.DataFrame(options)
@@ -191,7 +200,7 @@ class Scraper:
             df3,
             left_on='product_id', right_on='id'
         )
-        result = merged_data[['availability', 'label', 'once_off_price']]
+        result = merged_data[keys]
         return result.values.tolist()
 
     @staticmethod
@@ -250,8 +259,6 @@ if __name__ == '__main__':
     url2 = 'https://www.petheaven.co.za/other-pets/birds/bird-treats/marlton-s-fruit-nut-parrot-food-mix.html'
     url3 = 'https://www.petheaven.co.za/other-pets/small-pets/small-pet-habitats/wagworld-nap-sack-fleece-pet-bed-navy.html'
     url4 = 'https://www.petheaven.co.za/beeztees-sumo-halterino-dumbell-dog-toy.html'
-
-    # todo fix scraping products with much more options (greater than 6?) and different scripts
     url5 = 'https://www.petheaven.co.za/dogs/dog-clothing/jackets/dog-s-life-summer-raincoat-spots-black.html'
     url6 = 'https://www.petheaven.co.za/cats/cat-treats/orijen/orijen-6-fish-freeze-dried-cat-treats.html'
     scraper = Scraper(url5)

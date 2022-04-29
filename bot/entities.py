@@ -1,4 +1,5 @@
 from typing import NamedTuple, List
+from decimal import Decimal
 
 
 class User(NamedTuple):
@@ -12,7 +13,7 @@ class ProductOption(NamedTuple):
     id: int
     availability: str
     title: str
-    price: int
+    price: Decimal
 
 
 class Product(NamedTuple):

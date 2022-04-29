@@ -3,6 +3,7 @@ import logging
 import os
 
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
+from aiogram.utils.exceptions import WrongFileIdentifier
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.storage import FSMContext
 
@@ -121,7 +122,12 @@ async def info_callback_confirm(call: types.CallbackQuery, callback_data: Dict, 
                 parse_mode=types.ParseMode.HTML,
                 disable_web_page_preview=True,
             )
-            await call.message.answer_photo(product.img, product.title)
+            try:
+                await call.message.answer_photo(product.img, product.title)
+            except WrongFileIdentifier:
+                await call.message.answer(
+                    MESSAGES['info_photo_error'].format(product.title)
+                )
     finally:
         await state.update_data(checked_products=[])
         await state.reset_state(with_data=False)
