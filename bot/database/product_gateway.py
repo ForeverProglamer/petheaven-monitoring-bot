@@ -5,7 +5,7 @@ from mysql.connector import connect, Error, errorcode
 
 from bot.exceptions import DataAlreadyExistsInDBError, DataNotFoundError
 from bot.entities import Product, ProductOption
-from bot.utils.common import group_product_options_by_ids
+from bot.utils.util import to_products, group_product_options_by_ids
 from .config import db_config
 
 
@@ -13,8 +13,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(levelname)s  %(module)s  %(name)s  %(message)s'
 )
-
-PRODUCT_CHANGES_ID = 1
 
 ADD_PRODUCT_QUERY = """
     INSERT INTO products 
@@ -24,8 +22,8 @@ ADD_PRODUCT_QUERY = """
 
 ADD_PRODUCT_OPTION_QUERY = """
     INSERT INTO product_options
-    (availability, title, price, product_id, product_changes_id)
-    VALUES (%s, %s, %s, %s, %s)
+    (availability, title, price, product_id)
+    VALUES (%s, %s, %s, %s)
 """
 
 LINK_PRODUCT_WITH_USER_QUERY = """
@@ -66,15 +64,63 @@ REMOVE_PRODUCTS_BY_IDS_QUERY = """
     WHERE id IN ({})
 """
 
+GET_ALL_PRODUCTS_QUERY = """
+    SELECT * FROM products
+    ORDER BY id
+"""
 
-def add(user_id: int, product: Product) -> bool:
+GET_ALL_PRODUCTS_WITH_OPTIONS_QUERY = """
+    SELECT p.*, po.id, po.availability, po.title, po.price
+    FROM products AS p
+    JOIN product_options AS po ON p.id = po.product_id
+    ORDER BY p.id, po.id
+"""
+
+GET_ALL_FROM_MONITORING_LIST_QUERY = """
+    SELECT * FROM monitoring_list
+"""
+
+UPDATE_PRODUCTS_QUERY = """
+    INSERT INTO products
+        (id, brand, description_, img, title, product_type, rating, reviews, url)
+    VALUES 
+        (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ON DUPLICATE KEY UPDATE
+        brand = VALUES(brand),
+        description_ = VALUES(description_),
+        img = VALUES(img),
+        title = VALUES(title),
+        product_type = VALUES(product_type),
+        rating = VALUES(rating),
+        reviews = VALUES(reviews),
+        url = VALUES(url)
+"""
+
+UPDATE_PRODUCT_OPTIONS_QUERY = """
+    INSERT INTO product_options
+        (id, availability, title, price, product_id)
+    VALUES
+        (%s, %s, %s, %s, %s)
+    ON DUPLICATE KEY UPDATE
+        availability = VALUES(availability),
+        title = VALUES(title),
+        price = VALUES(price)
+"""
+
+REMOVE_PRODUCT_OPTIONS_QUERY = """
+    DELETE FROM product_options
+    WHERE id = %s
+"""
+
+
+def add(user_id: int, product: Product) -> int:
     """
     Insert product and product options to appropriate tables
     and add product to user's monitoring list.
     """
     def prepare_data(product_id: int, product_options: List[ProductOption]) -> Tuple[Tuple]:
         return tuple(map(
-            lambda p: (*(*p,)[1:], product_id, PRODUCT_CHANGES_ID),
+            lambda p: (*(*p,)[1:], product_id),
             product_options
         ))
 
@@ -107,7 +153,7 @@ def add_to_monitoring_list(user_id: int, product_id: int) -> bool:
                     LINK_PRODUCT_WITH_USER_QUERY, (user_id, product_id)
                 )
                 connection.commit()
-        return True
+                return True
     except Error as e:
         if e.errno == errorcode.ER_DUP_ENTRY:
             raise DataAlreadyExistsInDBError(e)
@@ -123,14 +169,14 @@ def find_by_url(url: str, with_product_options: bool = False) -> Union[Product, 
                 cursor.execute(FIND_PRODUCT_BY_URL_QUERY, (url,))
                 data = cursor.fetchone()
 
-        if not data:
-            raise DataNotFoundError(f'No product found with url={url}')
+                if not data:
+                    raise DataNotFoundError(f'No product found with url={url}')
 
-        product_options = None
-        if with_product_options:
-            product_options = find_options_by_id(data[0])
+                product_options = None
+                if with_product_options:
+                    product_options = find_options_by_id(data[0])
 
-        return Product._make((*data, product_options))
+                return Product._make((*data, product_options))
     except Error as e:
         logging.exception(f'Failed to find product by url={url}: {e}')
         return None
@@ -154,7 +200,8 @@ def find_options_by_id(product_id: int) -> Union[List[ProductOption], List]:
                 product_options = [
                     ProductOption._make(item) for item in data
                 ]
-        return product_options
+
+                return product_options
     except Error as e:
         logging.exception(f'Failed to find product options by id={product_id}: {e}')
         return []
@@ -178,7 +225,7 @@ def find_options_by_ids(product_ids: List[int]) -> Dict[int, List[ProductOption]
                         f'No product options found for products with ids={product_ids}'
                     )
 
-        return group_product_options_by_ids(product_ids, data)
+                return group_product_options_by_ids(product_ids, data)
     except Error as e:
         logging.exception(f'Failed to find product options by ids={product_ids}: {e}')
         return []
@@ -192,16 +239,17 @@ def find_all_from_monitoring_list(user_id: int) -> Tuple[Product]:
                 cursor.execute(FIND_FAVOURITE_PRODUCTS_QUERY, (user_id,))
                 data = cursor.fetchall()
 
-        if not data:
-            raise DataNotFoundError(
-                f'No products found in monitoring list of user with id={user_id}'
-            )
+                if not data:
+                    raise DataNotFoundError(
+                        f'No products found in monitoring list of user with id={user_id}'
+                    )
 
-        return tuple(Product._make((*item, None)) for item in data)
+                return tuple(Product._make((*item, None)) for item in data)
     except Error as e:
         logging.exception(f'Failed to find favourite products: {e}')
 
 
+# todo remove from monitoring_list table instead of removing from products table
 def remove_by_id(product_id: int) -> bool:
     """Remove product with give id."""
     try:
@@ -209,7 +257,7 @@ def remove_by_id(product_id: int) -> bool:
             with connection.cursor() as cursor:
                 cursor.execute(REMOVE_PRODUCT_BY_ID_QUERY, (product_id,))
                 connection.commit()
-        return True
+                return True
     except Error as e:
         logging.exception(f'Failed to remove product by id={product_id}: {e}')
         return False
@@ -225,7 +273,71 @@ def remove_by_ids(product_ids: List[int]) -> bool:
             with connection.cursor() as cursor:
                 cursor.execute(query, product_ids)
                 connection.commit()
-        return True
+                return True
     except Error as e:
         logging.exception(f'Failed to remove products by ids {product_ids}: {e}')
+        return False
+
+
+def get_all_products(with_options: bool = True) -> List[Product]:
+    try:
+        with connect(**db_config) as connection:
+            with connection.cursor() as cursor:
+                if with_options:
+                    cursor.execute(GET_ALL_PRODUCTS_WITH_OPTIONS_QUERY)
+                    data = cursor.fetchall()
+                    return to_products(data)
+                else:
+                    cursor.execute(GET_ALL_PRODUCTS_QUERY)
+                    data = cursor.fetchall()
+                    return [Product._make(*item, None) for item in data]
+    except Error as e:
+        logging.exception(f'Failed to get all products: {e}')
+        return []
+
+
+def get_all_from_monitoring_list() -> List[List]:
+    try:
+        with connect(**db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(GET_ALL_FROM_MONITORING_LIST_QUERY)
+                return cursor.fetchall()
+    except Error as e:
+        logging.exception(f'Failed to get all from monitoring list: {e}')
+        return []
+
+
+def update_products(products: List[Product]) -> bool:
+    products_data = [(*p,)[:-1] for p in products]
+    product_options_data = [
+        (*opt, p.id) for p in products for opt in p.product_options
+    ]
+    try:
+        with connect(**db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.executemany(
+                    UPDATE_PRODUCTS_QUERY, products_data
+                )
+                cursor.executemany(
+                    UPDATE_PRODUCT_OPTIONS_QUERY, product_options_data
+                )
+                connection.commit()
+                return True
+    except Error as e:
+        logging.exception(f'Failed to update products: {e}')
+        return False
+
+
+def remove_product_options_by_id(ids: List[int]) -> bool:
+    try:
+        with connect(**db_config) as connection:
+            with connection.cursor() as cursor:
+                cursor.executemany(
+                    REMOVE_PRODUCT_OPTIONS_QUERY,
+                    [(id_,) for id_ in ids]
+                )
+                connection.commit()
+                return True
+    except Error as e:
+        logging.exception(f'Failed to remove product options by ids={ids}: {e}')
         return False

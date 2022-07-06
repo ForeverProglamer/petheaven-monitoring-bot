@@ -1,5 +1,6 @@
 from typing import List, Dict
 from decimal import Decimal
+import logging
 import re
 
 from bs4 import BeautifulSoup as BS
@@ -9,7 +10,13 @@ import asyncio
 import chompjs
 
 from bot.entities import Product, ProductOption
+from bot.exceptions import ProductNotFoundError
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
+)
 
 HEADERS = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0',
@@ -17,6 +24,7 @@ HEADERS = {
 }
 
 STATUS_OK = 200
+STATUS_NOT_FOUND = 404
 
 SELECTORS = {
     'title': 'h1',
@@ -48,13 +56,17 @@ PARSER = 'lxml'
 
 
 class Scraper:
-    def __init__(self, url: str):
+    def __init__(self, url: str, session: aiohttp.ClientSession = None):
         self.url = url
+        self.__session = session
 
     async def scrape_product(self) -> Product:
         """Scrape whole product data from page and return Product object."""
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
-            html = await self.get_html(session)
+        if not self.__session:
+            async with aiohttp.ClientSession(headers=HEADERS) as session:
+                html = await self.get_html(session)
+        else:
+            html = await self.get_html(self.__session)
 
         soup = BS(html, PARSER)
 
@@ -80,8 +92,16 @@ class Scraper:
     async def get_html(self, session: aiohttp.ClientSession) -> str:
         """Helper func for sending request and getting page's html."""
         async with session.get(self.url) as response:
-            if response.status == STATUS_OK:
+            status = response.status
+            if status == STATUS_OK:
                 return await response.text()
+            elif status == STATUS_NOT_FOUND:
+                raise ProductNotFoundError(
+                    f'Product cannot be found on page {self.url}'
+                )
+            else:
+                raise Exception(f'Request failed: {response}')
+                
 
     def get_descriptive_data(self, soup: BS) -> Dict[str, str]:
         """Scrape descriptive data on page."""

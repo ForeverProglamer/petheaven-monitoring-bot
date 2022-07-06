@@ -3,7 +3,7 @@ from typing import Dict, List
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import Message
 
-from .render import get_keyboard_for_page, create_pages_from_products
+from .keyboard import get_keyboard_for_page, create_pages_from_products
 from bot.states import MonitorProducts
 from .common import MESSAGES, BUTTONS
 

@@ -1,5 +1,6 @@
 from typing import Dict
 import logging
+import asyncio
 import os
 
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
@@ -10,19 +11,19 @@ from aiogram.dispatcher.storage import FSMContext
 from dotenv import load_dotenv
 load_dotenv()
 
+from bot.views.product_info import render_product, render_product_list
 from bot.utils.handlers import monitor_menu_handlers, get_pages
-from bot.utils.common import MESSAGES, BUTTONS
 from bot.services import user_service, product_service
+from bot.utils.common import MESSAGES, BUTTONS
 from bot.states import MonitorProducts
+from bot.tasks.monitoring import monitor_products
 from bot.exceptions import (
     ServiceOperationFailedError,
     DataAlreadyExistsInDBError,
     CantSaveToDBError,
     DataNotFoundError
 )
-from bot.utils.render import (
-    prettify_product_info,
-    prettify_product_list,
+from bot.utils.keyboard import (
     get_keyboard_for_page,
     select_cb,
     navigation_cb,
@@ -71,7 +72,7 @@ async def cmd_monitor(message: types.Message, state: FSMContext):
         answer_text = MESSAGES['monitor_no_products']
         buttons = (BUTTONS['add'],)
     else:
-        prettified_list = prettify_product_list(products)
+        prettified_list = render_product_list(products)
         answer_text = MESSAGES['monitor_list'].format(prettified_list)
         buttons = monitor_menu_buttons
         await state.update_data(products=[p._asdict() for p in products])
@@ -118,7 +119,7 @@ async def info_callback_confirm(call: types.CallbackQuery, callback_data: Dict, 
         await call.message.edit_reply_markup()
         for product in products:
             await call.message.answer(
-                prettify_product_info(product),
+                render_product(product),
                 parse_mode=types.ParseMode.HTML,
                 disable_web_page_preview=True,
             )
@@ -186,10 +187,16 @@ async def remove_callback_confirm(call: types.CallbackQuery, callback_data: Dict
         await call.answer()
 
 
+async def startup(dp: Dispatcher):
+    asyncio.create_task(monitor_products(dp.bot))
+
+
 async def shutdown(dp: Dispatcher):
     await dp.storage.close()
     await dp.storage.wait_closed()
 
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True, on_shutdown=shutdown)
+    executor.start_polling(
+        dp, skip_updates=True, on_startup=startup, on_shutdown=shutdown
+    )

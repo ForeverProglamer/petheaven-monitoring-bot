@@ -16,3 +16,8 @@ class DataNotFoundError(Exception):
 class ServiceOperationFailedError(Exception):
     """Exception that is raised when service operation is failed to execute successfully."""
     pass
+
+
+class ProductNotFoundError(Exception):
+    """Exception that is raised when scraper can't find product on a website."""
+    pass

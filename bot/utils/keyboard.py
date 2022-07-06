@@ -1,10 +1,8 @@
-from typing import Tuple, List, Dict
+from typing import List, Dict
 from math import ceil
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-
-from bot.entities import Product
 
 
 select_cb = CallbackData('product', 'product_id')
@@ -12,34 +10,6 @@ navigation_cb = CallbackData('nav', 'page_num')
 confirm_cb = CallbackData('conf')
 
 elements_on_page = 5
-
-
-def prettify_product_list(products: Tuple[Product]) -> str:
-    return ''.join([
-        f'<b>{i}.</b> <a href="{p.url}">{p.title}</a>\n'
-        for i, p in enumerate(products, 1)
-    ])
-
-
-def prettify_product_info(product: Product) -> str:
-    options = ''
-    for opt in product.product_options:
-        options += (
-            f'<b>Option:</b> {opt.title}\n'
-            f'<b>Price:</b> R{opt.price:.2f}\n'
-            f'<b>Availability:</b> {opt.availability}\n'
-            '\n'
-        )
-
-    return (
-        f'<a href="{product.url}"><b>{product.title}</b></a>\n'
-        f'<b>Brand:</b> {product.brand}\n'
-        f'<b>Product type:</b> {product.product_type}\n'
-        f'<b>Rating:</b> {product.rating} / 5.0\n'
-        f'<b>Reviews:</b> {product.reviews}\n'
-        f'<b>Description:</b> {product.description}\n'
-        f'\n{options}'
-    )
 
 
 def create_pages_from_products(products: List[Dict]) -> List[List[Dict]]:
