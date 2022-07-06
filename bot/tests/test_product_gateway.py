@@ -1,5 +1,11 @@
 from bot.tests.mock_db import MockDb # must be imported before tested functions
-from bot.database.product_gateway import add, find_by_url, update_products, remove_product_options_by_id
+from bot.database.product_gateway import (
+    add,
+    find_by_url,
+    update_products,
+    remove_product_options_by_id,
+    remove_from_monitoring_list_by_ids,
+)
 from bot.database.user_gateway import save # need to add user before connecting him with product
 from bot.entities import Product, ProductOption, User
 from copy import deepcopy
@@ -36,8 +42,7 @@ class TestDbProducts(MockDb):
         self.product_options_ids = [1, 2, 3]
         self.product_options2_ids = [4, 5, 6, 7]
 
-        self.user = User(1, 'jackdoe', 'Jack', 'Doe')
-        
+        self.user = User(1, 'jackdoe', 'Jack', 'Doe')        
 
     def test_add_product(self):
         """Tests add_product function"""
@@ -94,3 +99,10 @@ class TestDbProducts(MockDb):
         """Tests remove_product_options_by_id function"""
         with self.mock_db_config:
             self.assertTrue(remove_product_options_by_id([1]))
+
+    def test_remove_from_monitoring_list_by_ids(self):
+        """Tests remove_from_monitoring_list_by_ids function"""
+        with self.mock_db_config:
+            self.assertTrue(remove_from_monitoring_list_by_ids(
+                self.user.id, [self.product2_id, self.product_id]
+            ))

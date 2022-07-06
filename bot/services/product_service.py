@@ -52,18 +52,23 @@ async def add(product_url: str, user_id: int) -> None:
         product_gateway.add_to_monitoring_list(user_id, product.id)
 
 
-async def remove_by_ids(state: FSMContext) -> None:
+async def remove_from_monitoring_list_by_ids(user_id: int, state: FSMContext) -> None:
     async with state.proxy() as data:
         product_ids = data.get('checked_products')
         if not product_ids:
             logging.info('No products selected to remove')
             return
 
-    result = product_gateway.remove_by_ids(product_ids)
+    result = product_gateway.remove_from_monitoring_list_by_ids(
+        user_id, product_ids
+    )
     if not result:
         raise ServiceOperationFailedError
 
-    logging.info(f'Products with ids {product_ids} removed successfully')
+    logging.info((
+        f'Products of user {user_id} '
+        f'with ids {product_ids} removed successfully'
+    ))
 
 
 async def add_to_checked_ids(id: int, state: FSMContext) -> None:

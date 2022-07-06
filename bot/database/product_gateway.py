@@ -60,8 +60,9 @@ REMOVE_PRODUCT_BY_ID_QUERY = """
 """
 
 REMOVE_PRODUCTS_BY_IDS_QUERY = """
-    DELETE FROM products
-    WHERE id IN ({})
+    DELETE FROM monitoring_list
+    WHERE user_id = %s
+    AND product_id = %s
 """
 
 GET_ALL_PRODUCTS_QUERY = """
@@ -249,7 +250,6 @@ def find_all_from_monitoring_list(user_id: int) -> Tuple[Product]:
         logging.exception(f'Failed to find favourite products: {e}')
 
 
-# todo remove from monitoring_list table instead of removing from products table
 def remove_by_id(product_id: int) -> bool:
     """Remove product with give id."""
     try:
@@ -263,19 +263,22 @@ def remove_by_id(product_id: int) -> bool:
         return False
 
 
-def remove_by_ids(product_ids: List[int]) -> bool:
-    """Remove product with give id."""
-    query = REMOVE_PRODUCTS_BY_IDS_QUERY.format(
-        ', '.join(['%s' for _ in range(len(product_ids))])
-    )
+def remove_from_monitoring_list_by_ids(user_id: int, product_ids: List[int]) -> bool:
+    """Removes products from user's monitoring list."""
     try:
         with connect(**db_config) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(query, product_ids)
+                cursor.executemany(
+                    REMOVE_PRODUCTS_BY_IDS_QUERY,
+                    [(user_id, id) for id in product_ids]
+                )
                 connection.commit()
                 return True
     except Error as e:
-        logging.exception(f'Failed to remove products by ids {product_ids}: {e}')
+        logging.exception((
+            f'Failed to remove products of user {user_id} '
+            f'with ids {product_ids}: {e}'
+        ))
         return False
 
 

@@ -175,7 +175,9 @@ async def add_product(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(confirm_cb.filter(), state=MonitorProducts.on_removing_product)
 async def remove_callback_confirm(call: types.CallbackQuery, callback_data: Dict, state: FSMContext):
     try:
-        await product_service.remove_by_ids(state)
+        await product_service.remove_from_monitoring_list_by_ids(
+            call.from_user.id, state
+        )
     except ServiceOperationFailedError:
         await call.message.answer(MESSAGES['remove_error'])
     else:
