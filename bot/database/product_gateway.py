@@ -250,16 +250,20 @@ def find_all_from_monitoring_list(user_id: int) -> Tuple[Product]:
         logging.exception(f'Failed to find favourite products: {e}')
 
 
-def remove_by_id(product_id: int) -> bool:
-    """Remove product with give id."""
+def remove_by_ids(product_ids: List[int]) -> bool:
+    """Removes products with given ids."""
     try:
         with connect(**db_config) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(REMOVE_PRODUCT_BY_ID_QUERY, (product_id,))
+                cursor.executemany(
+                    REMOVE_PRODUCT_BY_ID_QUERY, [(id,) for id in product_ids]
+                )
                 connection.commit()
                 return True
     except Error as e:
-        logging.exception(f'Failed to remove product by id={product_id}: {e}')
+        logging.exception(
+            f'Failed to remove products by ids={product_ids}: {e}'
+        )
         return False
 
 

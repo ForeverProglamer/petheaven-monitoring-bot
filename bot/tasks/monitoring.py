@@ -14,6 +14,7 @@ from bot.exceptions import ProductNotFoundError
 from bot.entities import Product, Notification
 from bot.database import product_gateway
 from bot.scraper import Scraper, HEADERS
+from .removing import remove_unavailable_products
 
 
 logging.basicConfig(
@@ -34,8 +35,9 @@ async def monitor_products(bot: Bot) -> None:
 
         products = product_gateway.get_all_products()
         monitoring_list = product_gateway.get_all_from_monitoring_list()
-        scraped_products = await _scrape_products([p.url for p in products])
-        scraped_products = list(filter(lambda p: p, scraped_products))
+        scraped_products, unavailable_product_urls = await _scrape_products(
+            [p.url for p in products]
+        )
 
         notifications = _create_notifications(
             bot, products, scraped_products, monitoring_list
@@ -44,31 +46,40 @@ async def monitor_products(bot: Bot) -> None:
         await _send_notifications(notifications)
         _update_products(products, scraped_products)
 
+        if unavailable_product_urls:
+            await remove_unavailable_products(
+                bot, unavailable_product_urls, products, monitoring_list
+            )
+
         logging.info(f'{len(products) = }')
         logging.info(f'{len(scraped_products) = }')
+        logging.info(f'{len(unavailable_product_urls)}')
         logging.info(f'{len(notifications) = }')
 
         logging.info(
             f'Time elapsed: {(datetime.now()-start_time).total_seconds()} sec'
         )
-
         logging.info(f'Monitoring task scheduled to {datetime.now() + DELTA}')
         await asyncio.sleep(DELTA.total_seconds())
 
 
 async def _scrape_products(urls: List[str]) -> List[Product]:
+    unavailable_product_urls = []
+
     async def scrape_product(url: str, session: ClientSession) -> Product:
         scraper = Scraper(url, session)
         try:
             return await scraper.scrape_product()
         except ProductNotFoundError as e:
-            # todo delete such products from storage and notify users
+            unavailable_product_urls.append(url)
             logging.exception(e)
 
     async with ClientSession(headers=HEADERS) as session:
-        return await asyncio.gather(
+        result =  await asyncio.gather(
             *(scrape_product(url, session) for url in urls)
         )
+
+    return list(filter(lambda p: p, result)), unavailable_product_urls
 
 
 def _create_notifications(bot: Bot, old_products: List[Product], scraped_products: List[Product],

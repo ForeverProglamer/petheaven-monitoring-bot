@@ -8,7 +8,7 @@ from bot.utils.common import find_items
 
 def render_notification_message(new: Product, old: Product) -> str:
     """High-level api for rendering notification's message."""
-    message = f'📬<a href="{new.url}"><b>{new.title}</b></a>\n\n'
+    message = _render_notification_title(new)
     message += _render_options_updates(
         new.product_options, old.product_options
     )
@@ -16,6 +16,17 @@ def render_notification_message(new: Product, old: Product) -> str:
         new.product_options, old.product_options
     )
     return message
+
+
+def render_unavailable_product(product: Product) -> str:
+    """Renders information about unavailable product."""
+    message = _render_notification_title(product)
+    message += '❗️Product was removed, it is no more available on website.'
+    return message
+
+
+def _render_notification_title(product: Product) -> str:
+    return f'📬<a href="{product.url}"><b>{product.title}</b></a>\n\n'
 
 
 def _render_options_updates(new_options: List[ProductOption],
