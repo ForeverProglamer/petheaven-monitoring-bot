@@ -14,9 +14,13 @@ Telegram bot that monitor products of petheaven.co.za and send notification when
     pip install -r requirements.txt
     ```
 
-3. Create MySQL database and then run createdb.sql script:
+3. Create MySQL database and then run following scripts:
     ```
-    mysql --user=user --password=password db_name < createdb.sql
+    mysql --user=user --password=password db_name < sql/createdb.sql
+    ```
+
+    ```
+    mysql --user=user --password=password db_name < sql/events.sql
     ```
 
 4. Create **.env** file in a root directory with your environment variables:

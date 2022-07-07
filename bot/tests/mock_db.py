@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 
 ENV_FILE = '.env'
+SQL_FOLDER = 'sql'
 CREATEDB_FILE = 'createdb.sql'
 
 path = os.path.join(os.getcwd(), ENV_FILE)
@@ -70,7 +71,7 @@ class MockDb(unittest.TestCase):
 
     @staticmethod
     def _get_data_from_file() -> str:
-        filepath = os.path.join(os.getcwd(), CREATEDB_FILE)
+        filepath = os.path.join(os.getcwd(), SQL_FOLDER, CREATEDB_FILE)
         if not os.path.exists(filepath):
             raise FileNotFoundError(
                 f'Failed to find {CREATEDB_FILE} with path: {filepath}'
