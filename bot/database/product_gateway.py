@@ -44,7 +44,7 @@ FIND_PRODUCT_OPTIONS_BY_ID_QUERY = """
 FIND_PRODUCT_OPTIONS_BY_IDS_QUERY = """
     SELECT id, availability, title, price, product_id
     FROM product_options
-    WHERE product_id  IN ({})
+    WHERE product_id IN ({})
     ORDER BY product_id
 """
 
@@ -160,7 +160,7 @@ def add_to_monitoring_list(user_id: int, product_id: int) -> bool:
             raise DataAlreadyExistsInDBError(e)
         logging.exception(f'Failed to add product to monitoring list: {e}')
         return False
-    
+
 
 def find_by_url(url: str, with_product_options: bool = False) -> Union[Product, None]:
     """Find first product by given url"""
@@ -204,32 +204,33 @@ def find_options_by_id(product_id: int) -> Union[List[ProductOption], List]:
 
                 return product_options
     except Error as e:
-        logging.exception(f'Failed to find product options by id={product_id}: {e}')
+        logging.exception(
+            f'Failed to find product options by id={product_id}: {e}')
         return []
 
 
 def find_options_by_ids(product_ids: List[int]) -> Dict[int, List[ProductOption]]:
-    """Find product options within product_ids list."""
+    """Finds product options within product_ids list."""
+    if not product_ids:
+        return {}
+
     query = FIND_PRODUCT_OPTIONS_BY_IDS_QUERY.format(
         ', '.join(['%s' for _ in range(len(product_ids))])
     )
+
     try:
         with connect(**db_config) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    query, product_ids
-                )
+                cursor.execute(query, product_ids)
                 data = cursor.fetchall()
-
                 if not data:
-                    raise DataNotFoundError(
-                        f'No product options found for products with ids={product_ids}'
-                    )
-
+                    return {}
                 return group_product_options_by_ids(product_ids, data)
     except Error as e:
-        logging.exception(f'Failed to find product options by ids={product_ids}: {e}')
-        return []
+        logging.exception(
+            f'Failed to find product options by ids={product_ids}: {e}'
+        )
+        return {}
 
 
 def find_all_from_monitoring_list(user_id: int) -> Tuple[Product]:
@@ -346,5 +347,6 @@ def remove_product_options_by_id(ids: List[int]) -> bool:
                 connection.commit()
                 return True
     except Error as e:
-        logging.exception(f'Failed to remove product options by ids={ids}: {e}')
+        logging.exception(
+            f'Failed to remove product options by ids={ids}: {e}')
         return False
