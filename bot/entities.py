@@ -76,7 +76,16 @@ class Product(NamedTuple):
                         scraped_opt._replace(id=old_opt.id)
                     )
 
+        product_options.extend(self.get_new_product_options(other))
         return other._replace(id=self.id, product_options=product_options)
+
+    def get_new_product_options(self, other: Product) -> List[Product]:
+        """Returns new product options."""
+        if len(self.product_options) < len(other.product_options):
+            return list(
+                set(other.product_options).difference(self.product_options)
+            )
+        return []
 
     def get_outdated_product_options_ids(self, other: Product) -> List[int]:
         """
