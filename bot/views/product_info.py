@@ -1,10 +1,11 @@
-from typing import Callable, Tuple
+from typing import Callable, List
 from decimal import Decimal
 
 from bot.entities import Product, ProductOption
 
 
-def render_product_list(products: Tuple[Product]) -> str:
+def render_product_list(products: List[Product]) -> str:
+    """Renders name and url of each product in list."""
     return ''.join([
         f'<b>{i}.</b> <a href="{p.url}">{p.title}</a>\n'
         for i, p in enumerate(products, 1)

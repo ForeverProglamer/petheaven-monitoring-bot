@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import asyncio
 import logging
 
@@ -19,7 +19,7 @@ logging.basicConfig(
 async def remove_unavailable_products(bot: Bot,
                                       unavailable_product_urls: List[str],
                                       products: List[Product],
-                                      monitoring_list: List[List]) -> None:
+                                      monitoring_list: List[Tuple]) -> None:
     """
     Task for removing unavailable products and
     notifying users that monitor such products.
@@ -43,7 +43,7 @@ async def _send_notifications(notifications: List[Notification]) -> None:
 
 
 def _create_notifications(bot: Bot, products: List[Product],
-                          monitoring_list: List[List]) -> List[Notification]:
+                          monitoring_list: List[Tuple]) -> List[Notification]:
     notifications = []
     for product in products:
         receivers_ids = _find_receivers_ids(product.id, monitoring_list)

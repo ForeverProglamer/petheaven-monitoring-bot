@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Tuple
 from decimal import Decimal
 import logging
 
@@ -46,6 +46,14 @@ class ProductOption(NamedTuple):
             availability_changed=self.availability != other.availability,
             price_changed=self.price != other.price
         )
+
+    def to_tuple(self, with_id: bool = False) -> Tuple:
+        """Converts an object to tuple of it's values."""
+        fields = self._fields
+        dict_ = self._asdict()
+        if not with_id:
+            fields = fields[1:]
+        return tuple(dict_[f] for f in fields)
 
 
 # todo consider using dataclass decorator instead of extending NamedTuple
@@ -94,10 +102,27 @@ class Product(NamedTuple):
     def are_product_options_changed(self, other: Product) -> bool:
         """
         Returns False, if old product options and
-        new product options are equal. Otherwise return True."""
+        new product options are equal. Otherwise return True.
+        """
         diff = set(self.product_options).difference(other.product_options)
         len_is_equal = len(self.product_options) != len(other.product_options)
         return bool(diff) or len_is_equal
+
+    def to_storage_structure(self) -> Tuple:
+        """
+        Converts product to structure
+        that can be saved in storage.
+        """
+        fields = self._fields
+        dict_ = self._asdict()
+        return tuple(dict_[f] for f in fields[1:-1])
+
+    def options_to_storage_structure(self, product_id: int) -> List[Tuple]:
+        """
+        Converts product options to structure
+        that can be saved in storage.
+        """
+        return [(*opt.to_tuple(), product_id) for opt in self.product_options]
 
 
 class ProductDifference(NamedTuple):

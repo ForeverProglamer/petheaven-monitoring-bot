@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
+from typing import List, Tuple
 from random import uniform
-from typing import List
 import logging
 import asyncio
 
@@ -53,7 +53,7 @@ async def monitor_products(bot: Bot) -> None:
 
         logging.info(f'{len(products) = }')
         logging.info(f'{len(scraped_products) = }')
-        logging.info(f'{len(unavailable_product_urls)}')
+        logging.info(f'{len(unavailable_product_urls) = }')
         logging.info(f'{len(notifications) = }')
 
         logging.info(
@@ -83,7 +83,7 @@ async def _scrape_products(urls: List[str]) -> List[Product]:
 
 
 def _create_notifications(bot: Bot, old_products: List[Product], scraped_products: List[Product],
-                          monitoring_list: List[List]) -> List[Notification]:
+                          monitoring_list: List[Tuple]) -> List[Notification]:
     notifications = []
     for old in old_products:
         for scraped in scraped_products:

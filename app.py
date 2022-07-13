@@ -63,12 +63,11 @@ async def cmd_monitor(message: types.Message, state: FSMContext):
     markup = types.ReplyKeyboardMarkup(
         resize_keyboard=True, one_time_keyboard=True
     )
-    try:
-        products = product_service.find_all_from_monitoring_list(
-            message.from_user.id
-        )
-    except DataNotFoundError as e:
-        logging.error(e)
+    products = product_service.find_all_from_monitoring_list(
+        message.from_user.id
+    )
+
+    if not products:
         answer_text = MESSAGES['monitor_no_products']
         buttons = (BUTTONS['add'],)
     else:
@@ -76,13 +75,13 @@ async def cmd_monitor(message: types.Message, state: FSMContext):
         answer_text = MESSAGES['monitor_list'].format(prettified_list)
         buttons = monitor_menu_buttons
         await state.update_data(products=[p._asdict() for p in products])
-    finally:
-        markup.add(*buttons)
-        await message.answer(
-            answer_text, reply_markup=markup,
-            parse_mode=types.ParseMode.HTML, disable_web_page_preview=True
-        )
-        await MonitorProducts.on_monitor_cmd.set()
+
+    markup.add(*buttons)
+    await message.answer(
+        answer_text, reply_markup=markup,
+        parse_mode=types.ParseMode.HTML, disable_web_page_preview=True
+    )
+    await MonitorProducts.on_monitor_cmd.set()
 
 
 @dp.message_handler(lambda m: m.text in monitor_menu_buttons, state=MonitorProducts.on_monitor_cmd)
