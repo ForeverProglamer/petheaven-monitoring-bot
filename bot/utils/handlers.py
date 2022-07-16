@@ -1,14 +1,14 @@
 from typing import Dict, List, Tuple
 
-from aiogram.utils.exceptions import WrongFileIdentifier
 from aiogram.dispatcher.storage import FSMContext
-from aiogram.types import Message, CallbackQuery, ParseMode
+from aiogram.types import CallbackQuery, Message, ParseMode
+from aiogram.utils.exceptions import WrongFileIdentifier
 
-from bot.views.product_info import render_product, render_product_list
-from bot.states import MonitorProducts
 from bot.entities import Product
-from .keyboard import get_keyboard_for_page, create_pages_from_products
-from .common import MESSAGES, BUTTONS
+from bot.states import MonitorProducts
+from bot.views.product_info import render_product, render_product_list
+from .keyboard import create_pages_from_products, get_keyboard_for_page
+from .common import BUTTONS, MESSAGES
 
 
 def get_ui_for_monitor_command(products: List[Product]) -> Tuple[str, Tuple[str]]:

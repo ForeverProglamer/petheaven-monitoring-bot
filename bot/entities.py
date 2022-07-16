@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import NamedTuple, List, Tuple
 from decimal import Decimal
 import logging
+from typing import NamedTuple, List, Tuple
 
 from aiogram import Bot, types
 from aiogram.utils.exceptions import BotBlocked

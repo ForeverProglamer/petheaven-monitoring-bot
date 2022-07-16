@@ -1,5 +1,5 @@
-from typing import Any, Dict, Callable, Iterable, List, Union
 from json import load
+from typing import Any, Dict, Callable, Iterable, List, Union
 
 
 bot_text_file = 'bot_text.json'

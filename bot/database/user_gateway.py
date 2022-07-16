@@ -2,8 +2,8 @@ import logging
 
 from mysql.connector import connect, Error, errorcode
 
-from bot.exceptions import DataAlreadyExistsInDBError, CantSaveToDBError
 from bot.entities import User
+from bot.exceptions import DataAlreadyExistsInDBError, CantSaveToDBError
 from .config import db_config
 
 

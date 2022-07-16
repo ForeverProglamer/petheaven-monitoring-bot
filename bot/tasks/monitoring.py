@@ -1,19 +1,19 @@
-from datetime import datetime, timedelta
-from typing import List, Tuple
-from random import uniform
-import logging
 import asyncio
+import logging
+from datetime import datetime, timedelta
+from random import uniform
+from typing import List, Tuple
 
-from aiohttp import ClientSession
 from aiogram import Bot
+from aiohttp import ClientSession
 
-from bot.views.product_notification import render_notification_message
+from bot.database import product_gateway
+from bot.entities import Notification, Product
+from bot.exceptions import ProductNotFoundError
+from bot.scraper import HEADERS, Scraper
 from bot.utils.common import find_items
 from bot.utils.util import choose_notifications
-from bot.exceptions import ProductNotFoundError
-from bot.entities import Product, Notification
-from bot.database import product_gateway
-from bot.scraper import Scraper, HEADERS
+from bot.views.product_notification import render_notification_message
 from .removing import remove_unavailable_products
 
 

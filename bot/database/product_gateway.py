@@ -1,11 +1,11 @@
-from typing import Dict, List, Tuple, Union
 import logging
+from typing import Dict, List, Tuple, Union
 
 from mysql.connector import connect, Error, errorcode
 
-from bot.exceptions import DataAlreadyExistsInDBError
 from bot.entities import Product, ProductOption
-from bot.utils.util import to_products, group_product_options_by_ids
+from bot.exceptions import DataAlreadyExistsInDBError
+from bot.utils.util import group_product_options_by_ids, to_products
 from .config import db_config
 
 

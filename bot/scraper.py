@@ -1,13 +1,13 @@
-from typing import List, Dict
-from decimal import Decimal
 import logging
 import re
+from decimal import Decimal
+from typing import Dict, List
 
-from bs4 import BeautifulSoup as BS
-import pandas as pd
 import aiohttp
 import asyncio
 import chompjs
+import pandas as pd
+from bs4 import BeautifulSoup as BS
 
 from bot.entities import Product, ProductOption
 from bot.exceptions import ProductNotFoundError

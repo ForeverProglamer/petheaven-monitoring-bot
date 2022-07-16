@@ -1,13 +1,13 @@
-from typing import List
 import logging
+from typing import List
 
 from aiogram.dispatcher import FSMContext
 
-from bot.exceptions import ServiceOperationFailedError, DataNotFoundError
 from bot.database import product_gateway
-from bot.utils.common import find_items
 from bot.entities import Product
+from bot.exceptions import DataNotFoundError, ServiceOperationFailedError
 from bot.scraper import Scraper
+from bot.utils.common import find_items
 
 
 def find_all_from_monitoring_list(user_id: int) -> List[Product]:

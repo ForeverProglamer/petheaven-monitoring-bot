@@ -17,15 +17,15 @@ from aiogram.types import (
 from dotenv import load_dotenv
 load_dotenv()
 
-from bot.services import user_service, product_service
-from bot.states import MonitorProducts
-from bot.tasks.monitoring import monitor_products
 from bot.exceptions import (
     ServiceOperationFailedError,
     DataAlreadyExistsInDBError,
     CantSaveToDBError,
     DataNotFoundError
 )
+from bot.services import user_service, product_service
+from bot.states import MonitorProducts
+from bot.tasks.monitoring import monitor_products
 from bot.utils.common import MESSAGES, BUTTONS
 from bot.utils.handlers import (
     monitor_menu_handlers,

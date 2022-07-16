@@ -1,13 +1,13 @@
-from typing import List, Tuple
 import asyncio
 import logging
+from typing import List, Tuple
 
 from aiogram import Bot
 
-from bot.views.product_notification import render_unavailable_product
-from bot.entities import Product, Notification
 from bot.database import product_gateway
+from bot.entities import Product, Notification
 from bot.utils.common import find_items
+from bot.views.product_notification import render_unavailable_product
 
 
 logging.basicConfig(

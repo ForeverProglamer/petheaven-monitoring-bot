@@ -1,5 +1,5 @@
-from typing import Callable, List
 from decimal import Decimal
+from typing import Callable, List
 
 from bot.entities import Product, ProductOption
 
