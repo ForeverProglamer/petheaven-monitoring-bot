@@ -1,25 +1,19 @@
-from typing import List
 import asyncio
 import logging
+from typing import List, Tuple
 
 from aiogram import Bot
 
-from bot.views.product_notification import render_unavailable_product
-from bot.entities import Product, Notification
 from bot.database import product_gateway
+from bot.entities import Product, Notification
 from bot.utils.common import find_items
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
+from bot.views.product_notification import render_unavailable_product
 
 
 async def remove_unavailable_products(bot: Bot,
                                       unavailable_product_urls: List[str],
                                       products: List[Product],
-                                      monitoring_list: List[List]) -> None:
+                                      monitoring_list: List[Tuple]) -> None:
     """
     Task for removing unavailable products and
     notifying users that monitor such products.
@@ -43,7 +37,7 @@ async def _send_notifications(notifications: List[Notification]) -> None:
 
 
 def _create_notifications(bot: Bot, products: List[Product],
-                          monitoring_list: List[List]) -> List[Notification]:
+                          monitoring_list: List[Tuple]) -> List[Notification]:
     notifications = []
     for product in products:
         receivers_ids = _find_receivers_ids(product.id, monitoring_list)

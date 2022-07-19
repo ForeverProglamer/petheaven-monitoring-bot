@@ -1,22 +1,17 @@
-from typing import List, Dict
-from decimal import Decimal
 import logging
 import re
+from decimal import Decimal
+from typing import Dict, List
 
-from bs4 import BeautifulSoup as BS
-import pandas as pd
 import aiohttp
 import asyncio
 import chompjs
+import pandas as pd
+from bs4 import BeautifulSoup as BS
 
 from bot.entities import Product, ProductOption
 from bot.exceptions import ProductNotFoundError
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
 
 HEADERS = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0',
@@ -86,7 +81,7 @@ class Scraper:
             url=self.url,
             product_options=product_options
         )
-        print(product)
+        logging.info('Scraped product %s', product)
         return product
 
     async def get_html(self, session: aiohttp.ClientSession) -> str:

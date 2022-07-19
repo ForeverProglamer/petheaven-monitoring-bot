@@ -1,10 +1,10 @@
-from unittest.mock import patch
+import os
 import subprocess
 import unittest
-import os
+from unittest.mock import patch
 
-from mysql.connector import connect, Error
 from dotenv import load_dotenv
+from mysql.connector import connect, Error
 
 
 ENV_FILE = '.env'

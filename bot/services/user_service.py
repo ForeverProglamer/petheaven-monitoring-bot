@@ -1,8 +1,8 @@
 import logging
 
-from bot.exceptions import DataAlreadyExistsInDBError
 from bot.database import user_gateway
 from bot.entities import User
+from bot.exceptions import DataAlreadyExistsInDBError
 
 
 def save(id: int, username: str, first_name: str, last_name: str) -> None:

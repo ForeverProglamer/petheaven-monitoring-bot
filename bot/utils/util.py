@@ -1,6 +1,6 @@
-from typing import List, Dict, Set
+from typing import Dict, List, Set
 
-from bot.entities import ProductOption, Product, Notification
+from bot.entities import Notification, Product, ProductOption
 
 
 MAX_MESSAGES_PER_SECOND = 30

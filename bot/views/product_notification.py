@@ -1,9 +1,9 @@
 from decimal import Decimal
 from typing import List
 
-from bot.entities import Product, ProductOption, ProductDifference
-from .product_info import product_option_renderer_factory
+from bot.entities import Product, ProductDifference, ProductOption
 from bot.utils.common import find_items
+from .product_info import product_option_renderer_factory
 
 
 def render_notification_message(new: Product, old: Product) -> str:

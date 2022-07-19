@@ -1,26 +1,21 @@
+import asyncio
+import logging
 from datetime import datetime, timedelta
 from random import uniform
-from typing import List
-import logging
-import asyncio
+from typing import List, Tuple
 
-from aiohttp import ClientSession
 from aiogram import Bot
+from aiohttp import ClientSession
 
-from bot.views.product_notification import render_notification_message
+from bot.database import product_gateway
+from bot.entities import Notification, Product
+from bot.exceptions import ProductNotFoundError
+from bot.scraper import HEADERS, Scraper
 from bot.utils.common import find_items
 from bot.utils.util import choose_notifications
-from bot.exceptions import ProductNotFoundError
-from bot.entities import Product, Notification
-from bot.database import product_gateway
-from bot.scraper import Scraper, HEADERS
+from bot.views.product_notification import render_notification_message
 from .removing import remove_unavailable_products
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
 
 MAX_SECONDS_DELAY = 5
 MIN_SECONDS_DELAY = 2
@@ -53,7 +48,7 @@ async def monitor_products(bot: Bot) -> None:
 
         logging.info(f'{len(products) = }')
         logging.info(f'{len(scraped_products) = }')
-        logging.info(f'{len(unavailable_product_urls)}')
+        logging.info(f'{len(unavailable_product_urls) = }')
         logging.info(f'{len(notifications) = }')
 
         logging.info(
@@ -83,7 +78,7 @@ async def _scrape_products(urls: List[str]) -> List[Product]:
 
 
 def _create_notifications(bot: Bot, old_products: List[Product], scraped_products: List[Product],
-                          monitoring_list: List[List]) -> List[Notification]:
+                          monitoring_list: List[Tuple]) -> List[Notification]:
     notifications = []
     for old in old_products:
         for scraped in scraped_products:

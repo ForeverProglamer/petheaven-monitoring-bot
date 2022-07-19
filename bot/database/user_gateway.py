@@ -2,15 +2,10 @@ import logging
 
 from mysql.connector import connect, Error, errorcode
 
-from bot.exceptions import DataAlreadyExistsInDBError, CantSaveToDBError
 from bot.entities import User
+from bot.exceptions import DataAlreadyExistsInDBError, CantSaveToDBError
 from .config import db_config
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
 
 ADD_USER_QUERY = """
     INSERT INTO users
