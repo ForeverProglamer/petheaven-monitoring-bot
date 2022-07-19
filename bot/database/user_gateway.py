@@ -7,11 +7,6 @@ from bot.exceptions import DataAlreadyExistsInDBError, CantSaveToDBError
 from .config import db_config
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
-
 ADD_USER_QUERY = """
     INSERT INTO users
     (id, username, first_name, last_name)

@@ -17,11 +17,6 @@ from bot.views.product_notification import render_notification_message
 from .removing import remove_unavailable_products
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
-
 MAX_SECONDS_DELAY = 5
 MIN_SECONDS_DELAY = 2
 DELTA = timedelta(hours=12)

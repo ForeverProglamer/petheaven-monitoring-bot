@@ -18,10 +18,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from bot.exceptions import (
-    ServiceOperationFailedError,
     DataAlreadyExistsInDBError,
+    DataNotFoundError,
     CantSaveToDBError,
-    DataNotFoundError
+    ServiceOperationFailedError
 )
 from bot.services import user_service, product_service
 from bot.states import MonitorProducts
@@ -41,7 +41,10 @@ from bot.utils.keyboard import (
 )
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s]:%(levelname)s:%(name)s:%(module)s:%(message)s'
+)
 
 TOKEN = os.getenv('TOKEN')
 

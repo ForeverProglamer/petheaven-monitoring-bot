@@ -9,11 +9,6 @@ from bot.utils.util import group_product_options_by_ids, to_products
 from .config import db_config
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
-
 ADD_PRODUCT_QUERY = """
     INSERT INTO products 
     (brand, description_, img, title, product_type, rating, reviews, url)

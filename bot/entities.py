@@ -7,12 +7,6 @@ from aiogram import Bot, types
 from aiogram.utils.exceptions import BotBlocked
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
-
-
 class User(NamedTuple):
     id: int
     username: str

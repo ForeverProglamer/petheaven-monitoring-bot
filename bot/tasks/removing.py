@@ -10,12 +10,6 @@ from bot.utils.common import find_items
 from bot.views.product_notification import render_unavailable_product
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
-
-
 async def remove_unavailable_products(bot: Bot,
                                       unavailable_product_urls: List[str],
                                       products: List[Product],

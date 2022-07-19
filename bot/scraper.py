@@ -13,11 +13,6 @@ from bot.entities import Product, ProductOption
 from bot.exceptions import ProductNotFoundError
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s  %(module)s  %(name)s  %(message)s'
-)
-
 HEADERS = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0',
     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
@@ -86,7 +81,7 @@ class Scraper:
             url=self.url,
             product_options=product_options
         )
-        print(product)
+        logging.info('Scraped product %s', product)
         return product
 
     async def get_html(self, session: aiohttp.ClientSession) -> str:
