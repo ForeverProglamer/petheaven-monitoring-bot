@@ -1,0 +1,24 @@
+{
+    "messages": {
+        "start": "Hi, I'm a {}🤖\n\nI'll help you to be aware of changes on www.petheaven.co.za and easily monitor favourite products.\n\nTo start monitoring products use /monitor command.",
+        "start_error": "😬 Something went wrong...Try again later",
+        "monitor_no_products": "🤷‍♂️ You have no products in your monitoring list, But you can add some.",
+        "monitor_list": "📋 <b>Your monitoring list:</b>\n{}",
+        "info_start": "✔️ Choose product which you want to check",
+        "info_photo_error": "😢 Can't send photo of {}",
+        "info_error": "😵‍💫 Can't find that product.",
+        "add_start": "📲 Send me url of product you want to add",
+        "add_wait": "🕵🏻‍♂️ Please wait. I'm looking for your product",
+        "add_success": "✅ Added successfully",
+        "add_same_product": "🤦‍♂️ I'm already added this one to your monitoring list earlier",
+        "add_error": "😢 Something went wrong...Cannot add this product",
+        "remove_start": "✔️ Choose product which you want to remove",
+        "remove_success": "✅ Removed successfully",
+        "remove_error": "❌ Can't remove product(s)"
+    },
+    "buttons": {
+        "info": "📖 Info",
+        "add": "➕ Add",
+        "remove": "🗑 Remove"
+    }
+}
